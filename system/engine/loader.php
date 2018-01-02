@@ -63,14 +63,18 @@ final class Loader {
 	}
 
 	public function view($route, $data = array()) {
+		$registry = $this->registry;
 		// Sanitize the call
 		$route = preg_replace('/[^a-zA-Z0-9_\/]/', '', (string)$route);
 		
 		// Keep the original trigger
 		$trigger = $route;
 		
+		// Template contents. Not the output!
+		$template = '';
+				
 		// Trigger the pre events
-		$result = $this->registry->get('event')->trigger('view/' . $trigger . '/before', array(&$route, &$data));
+		$result = $this->registry->get('event')->trigger('view/' . $trigger . '/before', array(&$route, &$data, &$template));
 		
 		// Make sure its only the last event that returns an output if required.
 		if ($result && !$result instanceof Exception) {
@@ -82,7 +86,7 @@ final class Loader {
 				$template->set($key, $value);
 			}
 			
-			$output = $template->render($this->registry->get('config')->get('template_directory') . $route);		
+			$output = $template->render($this->registry->get('config')->get('template_directory') . $route, $registry, $this->registry->get('config')->get('template_cache'));		
 		}
 		
 		// Trigger the post events
@@ -129,22 +133,22 @@ final class Loader {
 		$this->registry->get('event')->trigger('config/' . $route . '/after', array(&$route));
 	}
 
-	public function language($route) {
+	public function language($route, $key = '') {
 		// Sanitize the call
-		$route = preg_replace('/[^a-zA-Z0-9_\/]/', '', (string)$route);		
+		$route = preg_replace('/[^a-zA-Z0-9_\/]/', '', (string)$route);
 		
 		// Keep the original trigger
 		$trigger = $route;
 				
-		$result = $this->registry->get('event')->trigger('language/' . $trigger . '/before', array(&$route));
+		$result = $this->registry->get('event')->trigger('language/' . $trigger . '/before', array(&$route, &$key));
 		
 		if ($result && !$result instanceof Exception) {
 			$output = $result;
 		} else {
-			$output = $this->registry->get('language')->load($route);
+			$output = $this->registry->get('language')->load($route, $key);
 		}
 		
-		$result = $this->registry->get('event')->trigger('language/' . $trigger . '/after', array(&$route, &$output));
+		$result = $this->registry->get('event')->trigger('language/' . $trigger . '/after', array(&$route, &$key, &$output));
 		
 		if ($result && !$result instanceof Exception) {
 			$output = $result;

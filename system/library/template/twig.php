@@ -9,27 +9,51 @@ final class Twig {
 		include_once(DIR_SYSTEM . 'library/template/Twig/Autoloader.php');
 		
 		\Twig_Autoloader::register();	
-		
-		// specify where to look for templates
-		$loader = new \Twig_Loader_Filesystem(DIR_TEMPLATE);	
-		
-		// initialize Twig environment
-		$this->twig = new \Twig_Environment($loader, array('autoescape' => false));			
 	}
 	
 	public function set($key, $value) {
 		$this->data[$key] = $value;
 	}
 	
-	public function render($template) {
-		try {
-			// load template
-			$template = $this->twig->loadTemplate($template . '.twig');
+	public function render($template, $cache = false, $template_name) {
+		$file = DIR_TEMPLATE . $template . '.tpl';
+		
+		if($template_name == 'porto') {
+			$file = str_replace("default/","porto/",$file);
+		}
+		
+		if (is_file($file)) {
 			
-			return $template->render($this->data);
-		} catch (Exception $e) {
-			trigger_error('Error: Could not load template ' . $template . '!');
-			exit();	
-		}	
+			extract($this->data);
+
+			ob_start();
+
+			require($file);
+
+			return ob_get_clean();
+		} else {
+			// specify where to look for templates
+			$loader = new \Twig_Loader_Filesystem(DIR_TEMPLATE);	
+			
+			// initialize Twig environment
+			$config = array('autoescape' => false);
+			
+			// initialize Twig environment
+			if ($cache) {
+				$config['cache'] = DIR_CACHE;
+			}
+			
+			$this->twig = new \Twig_Environment($loader, $config);
+			
+			try {
+				// load template
+				$template = $this->twig->loadTemplate($template . '.twig');
+				
+				return $template->render($this->data);
+			} catch (Exception $e) {
+				trigger_error('Error: Could not load template ' . $template . '!');
+				exit();	
+			}	
+		}
 	}	
 }
